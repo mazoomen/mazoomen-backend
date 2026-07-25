@@ -11,7 +11,7 @@ import {
 export class UpdateProfileDto {
   @ApiProperty({
     description: 'User email address',
-    example: 'aiman@mazoom.app',
+    example: 'aiman@mazoomen.app',
     required: false,
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
@@ -27,6 +27,9 @@ export class UpdateProfileDto {
   @IsString()
   @IsOptional()
   @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+    message: 'errors.password_weak',
+  })
   password?: string;
 
   @ApiProperty({

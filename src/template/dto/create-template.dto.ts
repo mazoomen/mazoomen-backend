@@ -95,7 +95,7 @@ export class CreateTemplateDto {
 
   @ApiPropertyOptional({
     description: 'URL of the live template demo page',
-    example: 'https://demo.mazoom.app/royal-gold',
+    example: 'https://demo.mazoomen.app/royal-gold',
   })
   @IsOptional()
   @IsString({ message: 'Demo link must be a string' })

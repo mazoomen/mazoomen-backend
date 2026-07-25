@@ -1,13 +1,17 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service';
+import { S3Service } from '../media/s3.service';
 import { CreateTemplateDto, UpdateTemplateDto } from './dto';
 
 @Injectable()
 export class TemplateService {
+  private readonly logger = new Logger(TemplateService.name);
+
   constructor(
     private readonly prisma: PrismaService,
+    private readonly s3Service: S3Service,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
@@ -97,6 +101,19 @@ export class TemplateService {
       throw new NotFoundException(`errors.template_not_found|${id}`);
     }
 
+    // Clean up old previewImage from S3 if updated
+    if (dto.previewImage !== undefined && template.previewImage && dto.previewImage !== template.previewImage) {
+      try {
+        await this.s3Service.deleteFileByUrl(template.previewImage);
+        const key = this.s3Service.extractKeyFromUrl(template.previewImage);
+        const whereClause: any[] = [{ url: template.previewImage }];
+        if (key) whereClause.push({ key });
+        await this.prisma.media.deleteMany({ where: { OR: whereClause } });
+      } catch (error) {
+        this.logger.error(`Failed to clean up old template preview image (${template.previewImage}):`, error);
+      }
+    }
+
     const updated = await this.prisma.template.update({
       where: { id },
       data: {
@@ -124,3 +141,4 @@ export class TemplateService {
     return updated;
   }
 }
+

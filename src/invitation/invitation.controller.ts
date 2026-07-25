@@ -12,6 +12,9 @@ import {
   UploadedFile,
   BadRequestException,
   Req,
+  Query,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
 import * as express from 'express';
 import {
@@ -72,15 +75,15 @@ export class InvitationController {
         locationUrl: 'https://maps.google.com/?q=24.7136,46.6753',
         welcomeText: 'يسرنا دعوتكم لحضور حفل زفاف أحمد وسارة',
         images: [
-          'https://cdn.mazoom.app/img/photo1.jpg',
-          'https://cdn.mazoom.app/img/photo2.jpg',
+          'https://cdn.mazoomen.app/img/photo1.jpg',
+          'https://cdn.mazoomen.app/img/photo2.jpg',
         ],
-        musicUrl: 'https://cdn.mazoom.app/audio/wedding-nasheed.mp3',
+        musicUrl: 'https://cdn.mazoomen.app/audio/wedding-nasheed.mp3',
         createdAt: '2025-09-01T12:00:00.000Z',
         template: {
           id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
           title: 'Royal Gold Wedding',
-          thumbnailUrl: 'https://cdn.mazoom.app/templates/royal-gold.jpg',
+          thumbnailUrl: 'https://cdn.mazoomen.app/templates/royal-gold.jpg',
         },
       },
     },
@@ -222,7 +225,7 @@ export class InvitationController {
   /**
    * GET /invitations/slug/:slug
    * Public endpoint — used by the frontend to fetch invitation data
-   * when a guest opens a shareable link (e.g. mazoom.com/invite/ahmed-wedding).
+   * when a guest opens a shareable link (e.g. mazoomen.com/invite/ahmed-wedding).
    * Uses optional auth to allow owner/admin access to deactivated invitations.
    */
   @Get('slug/:slug')
@@ -250,16 +253,16 @@ export class InvitationController {
         locationUrl: 'https://maps.google.com/?q=24.7136,46.6753',
         welcomeText: 'يسرنا دعوتكم لحضور حفل زفاف أحمد وسارة',
         images: [
-          'https://cdn.mazoom.app/img/photo1.jpg',
-          'https://cdn.mazoom.app/img/photo2.jpg',
+          'https://cdn.mazoomen.app/img/photo1.jpg',
+          'https://cdn.mazoomen.app/img/photo2.jpg',
         ],
-        musicUrl: 'https://cdn.mazoom.app/audio/wedding-nasheed.mp3',
+        musicUrl: 'https://cdn.mazoomen.app/audio/wedding-nasheed.mp3',
         createdAt: '2025-09-01T12:00:00.000Z',
         template: {
           id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
           title: 'Royal Gold Wedding',
-          thumbnailUrl: 'https://cdn.mazoom.app/templates/royal-gold.jpg',
-          demoLink: 'https://demo.mazoom.app/royal-gold',
+          thumbnailUrl: 'https://cdn.mazoomen.app/templates/royal-gold.jpg',
+          demoLink: 'https://demo.mazoomen.app/royal-gold',
         },
       },
     },
@@ -281,14 +284,14 @@ export class InvitationController {
    * Client only (must be the invitation owner).
    */
   @Get(':id/rsvps')
-  @Roles(Role.CLIENT)
+  @Roles(Role.CLIENT, Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Get RSVPs for an invitation',
     description:
       'Returns all RSVP responses for a specific invitation, including attendance statistics. ' +
-      'Only the invitation owner can access this.',
+      'Accessible by the invitation owner or platform admins.',
   })
   @ApiParam({
     name: 'id',
@@ -298,27 +301,6 @@ export class InvitationController {
   @ApiResponse({
     status: 200,
     description: 'RSVPs with statistics',
-    schema: {
-      example: {
-        invitationId: 'e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b',
-        statistics: {
-          totalResponses: 25,
-          totalAttending: 38,
-          totalExcused: 5,
-          totalCompanions: 18,
-        },
-        rsvps: [
-          {
-            id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-            invitationId: 'e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b',
-            guestName: 'محمد العلي',
-            willAttend: true,
-            companionsCount: 2,
-            createdAt: '2025-09-05T10:30:00.000Z',
-          },
-        ],
-      },
-    },
   })
   @ApiResponse({
     status: 401,
@@ -326,14 +308,15 @@ export class InvitationController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden — you are not the invitation owner',
+    description: 'Forbidden — you are not authorized to view RSVPs for this invitation',
   })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
   findRsvps(
     @Param('id', ParseUUIDPipe) id: string,
     @GetUser('id') userId: string,
+    @GetUser('role') role: Role,
   ) {
-    return this.invitationService.findRsvps(id, userId);
+    return this.invitationService.findRsvps(id, userId, role);
   }
 
   /**
@@ -358,5 +341,45 @@ export class InvitationController {
     @Body() dto: ToggleStatusDto,
   ) {
     return this.invitationService.toggleStatus(id, dto.isActive);
+  }
+
+  /**
+   * GET /invitations/download-file
+   * Proxies a file download, forcing attachment headers to prevent opening in tab.
+   */
+  @Get('download-file')
+  async downloadFile(
+    @Query('url') url: string,
+    @Res({ passthrough: true }) res: express.Response,
+  ) {
+    if (!url) {
+      throw new BadRequestException('URL query parameter is required');
+    }
+
+    try {
+      const parsedUrl = new URL(url);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        throw new BadRequestException('Invalid URL protocol');
+      }
+    } catch {
+      throw new BadRequestException('Invalid URL');
+    }
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new BadRequestException('Failed to fetch file');
+      }
+
+      const filename = url.split('/').pop()?.split('?')[0] || 'download.jpg';
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', response.headers.get('content-type') || 'image/jpeg');
+
+      const { Readable } = require('stream');
+      const nodeStream = Readable.fromWeb(response.body as any);
+      return new StreamableFile(nodeStream);
+    } catch (err) {
+      throw new BadRequestException('Failed to stream file');
+    }
   }
 }

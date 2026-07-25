@@ -62,17 +62,42 @@ model PurchaseRequest {
   contactPhone String        @map("contact_phone")
   languageMode String        @default("both") @map("language_mode")
   status       RequestStatus @default(PENDING)
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  template     Template      @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  purchase     Purchase?
+  couponId       String?       @map("coupon_id") @db.Uuid
+  couponCode     String?       @map("coupon_code")
+  discountAmount Decimal?      @db.Decimal(10, 2) @map("discount_amount")
+  finalPrice     Decimal?      @db.Decimal(10, 2) @map("final_price")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  coupon         Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  template       Template      @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchase       Purchase?
 
   @@index([userId])
   @@index([templateId])
+  @@index([couponId])
   @@index([status])
   @@index([userId, status])
   @@map("purchase_requests")
+}
+
+/// Discount coupons managed by admins.
+model Coupon {
+  id              String            @id @default(uuid()) @db.Uuid
+  code            String            @unique
+  discountPercent Int               @map("discount_percent")
+  maxUses         Int?              @map("max_uses")
+  usedCount       Int               @default(0) @map("used_count")
+  isActive        Boolean           @default(true) @map("is_active")
+  isDeleted       Boolean           @default(false) @map("is_deleted")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  purchaseRequests PurchaseRequest[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([isDeleted])
+  @@map("coupons")
 }
 
 /// A purchase record created when a PurchaseRequest is approved.
@@ -122,6 +147,11 @@ model Invitation {
   isActive          Boolean  @default(true) @map("is_active")
   languageMode      String   @default("both") @map("language_mode")
   moments           String[] @default([])
+  hiddenMoments     String[] @default([]) @map("hidden_moments")
+  deletedMoments    String[] @default([]) @map("deleted_moments")
+  deletedImages     String[] @default([]) @map("deleted_images")
+  hiddenImages      String[] @default([]) @map("hidden_images")
+  galleryOrder      String[] @default([]) @map("gallery_order")
   purchaseId        String   @unique @map("purchase_id") @db.Uuid
   updatedAt         DateTime @updatedAt @map("updated_at")
   welcomeTextAr     String?  @map("welcome_text_ar")
@@ -234,6 +264,13 @@ enum MediaType {
   AUDIO
 }
 
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 model Media {
   id        String    @id @default(uuid()) @db.Uuid
   url       String
@@ -245,4 +282,38 @@ model Media {
 
   @@map("media")
 }
+
+/// Digital template orders processed via Tap Payments (goSell API)
+model Order {
+  id              String      @id @default(uuid()) @db.Uuid
+  customerName    String      @map("customer_name")
+  customerEmail   String      @map("customer_email")
+  templateDetails Json        @map("template_details")
+  amount          Decimal     @db.Decimal(10, 2)
+  currency        String      @default("KWD")
+  tapChargeId     String?     @unique @map("tap_charge_id")
+  status          OrderStatus @default(PENDING)
+  failureReason   String?     @map("failure_reason")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([customerEmail])
+  @@map("orders")
+}
+
+/// Verification OTP codes stored in DB before user creation
+model EmailOtp {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  code      String
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@map("email_otps")
+}
+
+
 

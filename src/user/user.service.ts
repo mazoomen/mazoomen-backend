@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -11,7 +12,9 @@ import { User, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CreateUserDto, UpdateUserByAdminDto } from './dto/admin-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuditLogService } from '../common/services/audit-log.service';
+import { MailService } from '../mail/mail.service';
 
 /** User fields safe to return in API responses (excludes passwordHash). */
 type SafeUser = Omit<User, 'passwordHash'>;
@@ -24,6 +27,7 @@ export class UserService {
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly auditLogService: AuditLogService,
+    private readonly mailService: MailService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -241,5 +245,101 @@ export class UserService {
     }
 
     return this.excludePassword(updated);
+  }
+
+  /**
+   * Generates a 6-digit OTP code, stores it in DB/cache, and emails it to the user for password change.
+   */
+  async sendPasswordOtp(userId: string): Promise<{ success: boolean; message: string; email: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('errors.user_not_found');
+    }
+
+    const email = user.email.toLowerCase().trim();
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Save to EmailOtp table
+    await this.prisma.emailOtp.upsert({
+      where: { email },
+      update: { code: otpCode, expiresAt },
+      create: { email, code: otpCode, expiresAt },
+    });
+
+    // Save to Cache
+    const cacheKey = `otp:${email}`;
+    await this.cacheManager.set(cacheKey, { code: otpCode, email }, 600000);
+
+    // Send email using MailService
+    await this.mailService.sendOtpEmail(email, otpCode, user.firstName);
+
+    return {
+      success: true,
+      message: 'Password reset code sent to email',
+      email,
+    };
+  }
+
+  /**
+   * Verifies OTP code and updates user password in DB.
+   */
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('errors.user_not_found');
+    }
+
+    const email = user.email.toLowerCase().trim();
+
+    // 1. Verify OTP code from Database & Cache
+    const dbOtp = await this.prisma.emailOtp.findUnique({
+      where: { email },
+    });
+
+    const cacheKey = `otp:${email}`;
+    const cachedOtp = await this.cacheManager.get<{ code: string; email: string }>(cacheKey);
+
+    const isValidOtp = dbOtp
+      ? dbOtp.code === dto.otp.trim() && new Date() <= dbOtp.expiresAt
+      : cachedOtp?.code === dto.otp.trim();
+
+    if (!isValidOtp) {
+      throw new BadRequestException('errors.invalid_otp');
+    }
+
+    // 2. Hash new password & update in DB
+    const passwordHash = await this.hashPassword(dto.newPassword);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    // 3. Clean up OTP record
+    await this.prisma.emailOtp.delete({ where: { email } }).catch(() => null);
+    await this.cacheManager.del(cacheKey).catch(() => null);
+
+    // Audit log
+    await this.auditLogService.logPasswordChange(
+      userId,
+      ip || 'unknown',
+      userAgent || 'unknown',
+    );
+
+    return {
+      success: true,
+      message: 'Password updated successfully',
+    };
   }
 }

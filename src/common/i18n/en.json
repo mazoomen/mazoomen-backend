@@ -17,6 +17,8 @@
   "errors.purchase_request_processed": "Purchase request has already been {0}. Only PENDING requests can be updated.",
   "errors.guest_uploads_disabled": "Guest uploads are disabled for this invitation. Only the host can add photos.",
   "errors.password_weak": "Password is too weak. It must contain at least one uppercase letter, one lowercase letter, and one number or special character.",
+  "errors.pending_purchase_request_exists": "You already have a pending purchase request. Please wait for the administrator to review it before creating another request.",
+  "You already have a pending purchase request. Please wait for the administrator to review it before creating another request.": "You already have a pending purchase request. Please wait for the administrator to review it before creating another request.",
 
   "Email is already registered": "Email is already registered",
   "Phone number is already registered": "Phone number is already registered",

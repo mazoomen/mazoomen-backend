@@ -17,6 +17,8 @@
   "errors.purchase_request_processed": "طلب الشراء بالفعل أصبح {0}. يمكن فقط تعديل الطلبات المعلقة.",
   "errors.guest_uploads_disabled": "رفع الصور من قِبل الضيوف معطل لهذه الدعوة. يمكن لصاحب الدعوة فقط إضافة صور.",
   "errors.password_weak": "كلمة المرور ضعيفة جداً. يجب أن تحتوي على حرف كبير واحد على الأقل، وحرف صغير واحد على الأقل، ورقم أو رمز خاص.",
+  "errors.pending_purchase_request_exists": "لديك بالفعل طلب شراء معلق. يرجى انتظار مراجعة المشرف قبل إنشاء طلب آخر.",
+  "You already have a pending purchase request. Please wait for the administrator to review it before creating another request.": "لديك بالفعل طلب شراء معلق. يرجى انتظار مراجعة المشرف قبل إنشاء طلب آخر.",
   
   "Email is already registered": "البريد الإلكتروني مسجل بالفعل",
   "Phone number is already registered": "رقم الهاتف مسجل بالفعل",

@@ -50,6 +50,11 @@ const UPDATABLE_ARRAY_FIELDS = [
   'eventProgram',
   'eventDetails',
   'moments',
+  'hiddenMoments',
+  'deletedMoments',
+  'deletedImages',
+  'hiddenImages',
+  'galleryOrder',
 ] as const;
 const UPDATABLE_BOOLEAN_FIELDS = ['isActive', 'allowGuestUploads', 'showMoments', 'allowCompanions'] as const;
 
@@ -197,39 +202,57 @@ export class InvitationService {
     if (dto.eventDate !== undefined) {
       updateData.eventDate = new Date(dto.eventDate);
     }
-    // 4b. Perform automatic S3 storage and DB cleanup for removed images
+    // 4b. Perform automatic S3 storage and DB cleanup for removed images, moments, and audio
     const urlsToRemove: string[] = [];
 
-    if (dto.images !== undefined) {
-      const dtoImages = dto.images;
-      const removedImages = invitation.images.filter(img => !dtoImages.includes(img));
+    // Background music track cleanup
+    if (dto.musicUrl !== undefined && invitation.musicUrl && dto.musicUrl !== invitation.musicUrl) {
+      urlsToRemove.push(invitation.musicUrl);
+    }
+
+    // Gallery images cleanup
+    if (dto.images !== undefined || dto.hiddenImages !== undefined || dto.deletedImages !== undefined) {
+      const oldGallery = [...(invitation.images || []), ...(invitation.hiddenImages || []), ...(invitation.deletedImages || [])];
+      const newGallery = [
+        ...(dto.images ?? invitation.images ?? []),
+        ...(dto.hiddenImages ?? invitation.hiddenImages ?? []),
+        ...(dto.deletedImages ?? invitation.deletedImages ?? []),
+      ];
+      const removedImages = oldGallery.filter((url) => !newGallery.includes(url));
       urlsToRemove.push(...removedImages);
     }
-    if (dto.moments !== undefined) {
-      const dtoMoments = dto.moments;
-      const removedMoments = invitation.moments.filter(mom => !dtoMoments.includes(mom));
+
+    // Guest moments cleanup
+    if (dto.moments !== undefined || dto.hiddenMoments !== undefined || dto.deletedMoments !== undefined) {
+      const oldMoments = [...(invitation.moments || []), ...(invitation.hiddenMoments || []), ...(invitation.deletedMoments || [])];
+      const newMoments = [
+        ...(dto.moments ?? invitation.moments ?? []),
+        ...(dto.hiddenMoments ?? invitation.hiddenMoments ?? []),
+        ...(dto.deletedMoments ?? invitation.deletedMoments ?? []),
+      ];
+      const removedMoments = oldMoments.filter((url) => !newMoments.includes(url));
       urlsToRemove.push(...removedMoments);
     }
 
     if (urlsToRemove.length > 0) {
-      // Find matching media in DB to get keys
-      const mediaRecords = await this.prisma.media.findMany({
-        where: {
-          url: { in: urlsToRemove },
-        },
-      });
-
-      for (const record of mediaRecords) {
+      const uniqueUrls = Array.from(new Set(urlsToRemove.filter(Boolean)));
+      for (const url of uniqueUrls) {
         try {
-          // Delete from S3
-          await this.s3Service.deleteFile(record.key);
-          // Delete from DB
-          await this.prisma.media.delete({
-            where: { id: record.id },
+          // 1. Delete from AWS S3
+          await this.s3Service.deleteFileByUrl(url);
+
+          // 2. Delete matching Media DB record
+          const key = this.s3Service.extractKeyFromUrl(url);
+          const whereClause: any[] = [{ url }];
+          if (key) whereClause.push({ key });
+
+          await this.prisma.media.deleteMany({
+            where: {
+              OR: whereClause,
+            },
           });
         } catch (error) {
-          // Log and continue to not block the invitation update flow if a deletion fails
-          this.logger.error(`Automatic S3 cleanup failed for key ${record.key}:`, error);
+          this.logger.error(`Automatic S3/Media cleanup failed for URL ${url}:`, error);
         }
       }
     }
@@ -334,7 +357,23 @@ export class InvitationService {
       }
     }
 
-    return this.mapInvitationResponse(invitation);
+    const mapped = this.mapInvitationResponse(invitation);
+    const isOwnerOrAdmin =
+      (userId && invitation.purchase.userId === userId) ||
+      userRole === 'ADMIN';
+    if (!isOwnerOrAdmin) {
+      if (mapped.moments && mapped.hiddenMoments) {
+        mapped.moments = mapped.moments.filter(
+          (m: string) => !mapped.hiddenMoments.includes(m),
+        );
+      }
+      if (mapped.images && mapped.hiddenImages) {
+        mapped.images = mapped.images.filter(
+          (img: string) => !mapped.hiddenImages.includes(img),
+        );
+      }
+    }
+    return mapped;
   }
 
   // ──────────────────────────────────────────────
@@ -364,7 +403,7 @@ export class InvitationService {
   // Get RSVPs for an invitation (Client only — owner)
   // ──────────────────────────────────────────────
 
-  async findRsvps(invitationId: string, userId: string) {
+  async findRsvps(invitationId: string, userId: string, userRole?: string) {
     // 1. Find the invitation
     const invitation = await this.prisma.invitation.findUnique({
       where: { id: invitationId },
@@ -377,8 +416,8 @@ export class InvitationService {
       );
     }
 
-    // 2. Ensure the client owns this invitation
-    if (invitation.purchase.userId !== userId) {
+    // 2. Ensure the client owns this invitation OR user is an ADMIN
+    if (invitation.purchase.userId !== userId && userRole !== 'ADMIN') {
       throw new ForbiddenException('errors.unauthorized_rsvp');
     }
 
@@ -439,7 +478,7 @@ export class InvitationService {
           ? process.env.TRUSTED_CDN_DOMAINS.split(',').map((d) =>
               d.trim().toLowerCase(),
             )
-          : ['cdn.mazoom.app'];
+          : ['cdn.mazoomen.app'];
 
         isTrusted = allowedDomains.some(
           (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
@@ -646,10 +685,35 @@ export class InvitationService {
       ? invitationFields.moments.map(sanitizeUrl)
       : invitationFields.moments;
 
+    const hiddenMoments = Array.isArray(invitationFields.hiddenMoments)
+      ? invitationFields.hiddenMoments.map(sanitizeUrl)
+      : invitationFields.hiddenMoments || [];
+
+    const deletedMoments = Array.isArray(invitationFields.deletedMoments)
+      ? invitationFields.deletedMoments.map(sanitizeUrl)
+      : invitationFields.deletedMoments || [];
+
+    const deletedImages = Array.isArray(invitationFields.deletedImages)
+      ? invitationFields.deletedImages.map(sanitizeUrl)
+      : invitationFields.deletedImages || [];
+
+    const hiddenImages = Array.isArray(invitationFields.hiddenImages)
+      ? invitationFields.hiddenImages.map(sanitizeUrl)
+      : invitationFields.hiddenImages || [];
+
+    const galleryOrder = Array.isArray(invitationFields.galleryOrder)
+      ? invitationFields.galleryOrder.map(sanitizeUrl)
+      : invitationFields.galleryOrder || [];
+
     return {
       ...invitationFields,
       images,
       moments,
+      hiddenMoments,
+      deletedMoments,
+      deletedImages,
+      hiddenImages,
+      galleryOrder,
       userId: purchase?.userId,
       templateId: purchase?.templateId,
       template: purchase?.template,

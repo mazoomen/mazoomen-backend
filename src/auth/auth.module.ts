@@ -10,8 +10,11 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { AbuseService } from '../common/services/abuse.service';
 import { AuditLogService } from '../common/services/audit-log.service';
 
+import { MailModule } from '../mail/mail.module';
+
 @Module({
   imports: [
+    MailModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
 
     JwtModule.registerAsync({

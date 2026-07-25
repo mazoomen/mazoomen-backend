@@ -5,7 +5,7 @@ import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 export class LoginDto {
   @ApiProperty({
     description: 'Registered email address',
-    example: 'aiman@mazoom.app',
+    example: 'aiman@mazoomen.app',
   })
   @IsEmail()
   @Transform(({ value }) => value?.toLowerCase().trim())

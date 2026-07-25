@@ -22,6 +22,7 @@ import { GetUser } from '../auth/decorators/get-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserService } from './user.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateUserDto, UpdateUserByAdminDto } from './dto/admin-user.dto';
 import * as express from 'express';
 import { AbuseService } from '../common/services/abuse.service';
@@ -85,6 +86,30 @@ export class UserController {
     const ip = this.abuseService.extractIp(request);
     const userAgent = request.headers['user-agent'] || '';
     return this.userService.updateProfile(userId, dto, ip, userAgent);
+  }
+
+  @Post('change-password/send-otp')
+  @ApiOperation({
+    summary: "Send OTP email to change user's password",
+    description: 'Generates a 6-digit OTP code and emails it to the authenticated user.',
+  })
+  sendPasswordOtp(@GetUser('id') userId: string) {
+    return this.userService.sendPasswordOtp(userId);
+  }
+
+  @Post('change-password')
+  @ApiOperation({
+    summary: "Change user's password with OTP verification",
+    description: 'Verifies 6-digit OTP code and updates the authenticated user password.',
+  })
+  changePassword(
+    @GetUser('id') userId: string,
+    @Body() dto: ChangePasswordDto,
+    @Req() request: express.Request,
+  ) {
+    const ip = this.abuseService.extractIp(request);
+    const userAgent = request.headers['user-agent'] || '';
+    return this.userService.changePassword(userId, dto, ip, userAgent);
   }
 
   @Get()

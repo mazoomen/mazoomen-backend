@@ -82,4 +82,62 @@ export class S3Service {
 
     return `/${cleanKey}`;
   }
+
+  extractKeyFromUrl(url: string): string | null {
+    if (!url || typeof url !== 'string') return null;
+    const cleanUrl = url.split('?')[0].trim();
+    if (!cleanUrl) return null;
+
+    let path = cleanUrl;
+
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+      try {
+        const parsed = new URL(cleanUrl);
+        path = parsed.pathname;
+      } catch {
+        return null;
+      }
+    }
+
+    const cleanKey = path.replace(/^\/+/, '');
+    if (!cleanKey) return null;
+
+    const knownPrefixes = ['guest-moments/', 'invitations/', 'templates/', 'users/', 'media/', 'uploads/'];
+    if (knownPrefixes.some((prefix) => cleanKey.startsWith(prefix))) {
+      return cleanKey;
+    }
+
+    const cloudFrontUrl = this.configService.get<string>('CLOUDFRONT_URL') || process.env.CLOUDFRONT_URL;
+    if (this.bucketName && cleanUrl.includes(`${this.bucketName}.s3.`)) {
+      return cleanKey;
+    }
+    if (cloudFrontUrl && cleanUrl.includes(cloudFrontUrl.replace(/^https?:\/\//, ''))) {
+      return cleanKey;
+    }
+
+    return null;
+  }
+
+  async deleteFileByUrl(url: string): Promise<boolean> {
+    const key = this.extractKeyFromUrl(url);
+    if (!key) {
+      return false;
+    }
+    try {
+      await this.deleteFile(key);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to delete file from S3 by URL (${url}, key: ${key}):`, error);
+      return false;
+    }
+  }
+
+  async deleteFilesByUrls(urls: string[]): Promise<void> {
+    if (!urls || urls.length === 0) return;
+    const uniqueUrls = Array.from(new Set(urls.filter(Boolean)));
+    for (const url of uniqueUrls) {
+      await this.deleteFileByUrl(url);
+    }
+  }
 }
+

@@ -119,4 +119,66 @@ export class MediaService {
       where: { id },
     });
   }
+
+  async cleanupOrphans(): Promise<{ deletedCount: number; errors: number }> {
+    // 1. Fetch all active media references across invitations & templates
+    const invitations = await this.prisma.invitation.findMany({
+      select: {
+        images: true,
+        moments: true,
+        hiddenImages: true,
+        hiddenMoments: true,
+        deletedImages: true,
+        deletedMoments: true,
+        musicUrl: true,
+      },
+    });
+
+    const templates = await this.prisma.template.findMany({
+      select: {
+        previewImage: true,
+      },
+    });
+
+    const activeUrlsSet = new Set<string>();
+    for (const inv of invitations) {
+      if (inv.images) inv.images.forEach((u) => activeUrlsSet.add(u));
+      if (inv.moments) inv.moments.forEach((u) => activeUrlsSet.add(u));
+      if (inv.hiddenImages) inv.hiddenImages.forEach((u) => activeUrlsSet.add(u));
+      if (inv.hiddenMoments) inv.hiddenMoments.forEach((u) => activeUrlsSet.add(u));
+      if (inv.deletedImages) inv.deletedImages.forEach((u) => activeUrlsSet.add(u));
+      if (inv.deletedMoments) inv.deletedMoments.forEach((u) => activeUrlsSet.add(u));
+      if (inv.musicUrl) activeUrlsSet.add(inv.musicUrl);
+    }
+    for (const tmpl of templates) {
+      if (tmpl.previewImage) activeUrlsSet.add(tmpl.previewImage);
+    }
+
+    // 2. Fetch Media records older than 24 hours
+    const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const mediaList = await this.prisma.media.findMany({
+      where: {
+        createdAt: { lt: cutoffDate },
+      },
+    });
+
+    let deletedCount = 0;
+    let errors = 0;
+
+    for (const media of mediaList) {
+      const isUsed = activeUrlsSet.has(media.url) || Array.from(activeUrlsSet).some((url) => url.includes(media.key));
+      if (!isUsed) {
+        try {
+          await this.s3Service.deleteFile(media.key);
+          await this.prisma.media.delete({ where: { id: media.id } });
+          deletedCount++;
+        } catch {
+          errors++;
+        }
+      }
+    }
+
+    return { deletedCount, errors };
+  }
 }
+

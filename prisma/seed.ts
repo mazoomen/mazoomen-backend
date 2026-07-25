@@ -29,10 +29,10 @@ async function main() {
 
   const admin = await prisma.user.create({
     data: {
-      email: 'admin@mazoom.app',
+      email: 'admin@mazoomen.app',
       passwordHash: adminPasswordHash,
       firstName: 'Admin',
-      lastName: 'Mazoom',
+      lastName: 'Mazoomen',
       phoneNumber: '+966500000001',
       role: Role.ADMIN,
     },
@@ -40,10 +40,10 @@ async function main() {
 
   const client = await prisma.user.create({
     data: {
-      email: 'client@mazoom.app',
+      email: 'client@mazoomen.app',
       passwordHash: clientPasswordHash,
       firstName: 'Client',
-      lastName: 'Mazoom',
+      lastName: 'Mazoomen',
       phoneNumber: '+966500000002',
       role: Role.CLIENT,
     },
@@ -190,7 +190,7 @@ async function main() {
     data: {
       userId: admin.id,
       templateId: template1.id,
-      contactEmail: 'admin@mazoom.app',
+      contactEmail: 'admin@mazoomen.app',
       contactPhone: '+966500000001',
       status: 'APPROVED',
     },
@@ -248,7 +248,7 @@ async function main() {
     data: {
       userId: admin.id,
       templateId: template2.id,
-      contactEmail: 'admin@mazoom.app',
+      contactEmail: 'admin@mazoomen.app',
       contactPhone: '+966500000001',
       status: 'APPROVED',
     },
@@ -306,7 +306,7 @@ async function main() {
     data: {
       userId: admin.id,
       templateId: template3.id,
-      contactEmail: 'admin@mazoom.app',
+      contactEmail: 'admin@mazoomen.app',
       contactPhone: '+966500000001',
       status: 'APPROVED',
     },
@@ -364,7 +364,7 @@ async function main() {
     data: {
       userId: admin.id,
       templateId: template4.id,
-      contactEmail: 'admin@mazoom.app',
+      contactEmail: 'admin@mazoomen.app',
       contactPhone: '+966500000001',
       status: 'APPROVED',
     },
@@ -422,7 +422,7 @@ async function main() {
     data: {
       userId: admin.id,
       templateId: template5.id,
-      contactEmail: 'admin@mazoom.app',
+      contactEmail: 'admin@mazoomen.app',
       contactPhone: '+966500000001',
       status: 'APPROVED',
     },
@@ -480,7 +480,7 @@ async function main() {
     data: {
       userId: admin.id,
       templateId: template6.id,
-      contactEmail: 'admin@mazoom.app',
+      contactEmail: 'admin@mazoomen.app',
       contactPhone: '+966500000001',
       status: 'APPROVED',
     },
@@ -538,7 +538,7 @@ async function main() {
     data: {
       userId: admin.id,
       templateId: template7.id,
-      contactEmail: 'admin@mazoom.app',
+      contactEmail: 'admin@mazoomen.app',
       contactPhone: '+966500000001',
       status: 'APPROVED',
     },
@@ -596,7 +596,7 @@ async function main() {
     data: {
       userId: admin.id,
       templateId: template8.id,
-      contactEmail: 'admin@mazoom.app',
+      contactEmail: 'admin@mazoomen.app',
       contactPhone: '+966500000001',
       status: 'APPROVED',
     },

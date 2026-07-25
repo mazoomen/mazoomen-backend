@@ -54,6 +54,10 @@ export class PurchaseRequestController {
     description: 'Unauthorized — missing or invalid JWT',
   })
   @ApiResponse({ status: 404, description: 'Template not found' })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict — user already has a PENDING purchase request',
+  })
   create(@GetUser('id') userId: string, @Body() dto: CreatePurchaseRequestDto) {
     return this.purchaseRequestService.create(userId, dto);
   }

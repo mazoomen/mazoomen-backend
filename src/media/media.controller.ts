@@ -20,8 +20,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
 import { memoryStorage } from 'multer';
-import { JwtAuthGuard } from '../auth/guards';
+import { JwtAuthGuard, RolesGuard } from '../auth/guards';
+import { Roles } from '../auth/decorators';
 import { MediaService } from './media.service';
 
 @ApiTags('Media')
@@ -61,6 +63,21 @@ export class MediaController {
     return this.mediaService.uploadMedia(file);
   }
 
+  @Delete('cleanup-orphans')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Clean up orphaned media files from S3 and database (Admin only)',
+    description: 'Finds media files not referenced by any invitation or template and deletes them from AWS S3 and database.',
+  })
+  @ApiResponse({ status: 200, description: 'Orphaned media cleaned up successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Admin access required' })
+  async cleanupOrphans() {
+    return this.mediaService.cleanupOrphans();
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -80,3 +97,4 @@ export class MediaController {
     await this.mediaService.deleteMedia(id);
   }
 }
+

@@ -29,7 +29,6 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma
 COPY tsconfig.json tsconfig.build.json nest-cli.json ./
 COPY src ./src
-COPY public ./public
 
 # Generate Prisma Client
 RUN npx prisma generate

@@ -44,7 +44,7 @@ export class CreatePurchaseRequestDto {
 
   @ApiProperty({
     description: 'Optional coupon code for discount',
-    example: 'MAZOOM',
+    example: 'MAZOOMEN',
     required: false,
   })
   @IsString()

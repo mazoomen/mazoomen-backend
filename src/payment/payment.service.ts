@@ -59,8 +59,8 @@ export class PaymentService {
       currency: dto.currency || 'KWD',
       threeDSecure: true,
       save_card: false,
-      description: `Mazoomin Digital Template Purchase - Order #${order.id}`,
-      statement_descriptor: 'Mazoomin Digital',
+      description: `Mazoomen Digital Template Purchase - Order #${order.id}`,
+      statement_descriptor: 'Mazoomen Digital',
       metadata: {
         orderId: order.id,
         customerEmail: dto.customerEmail,

@@ -107,7 +107,7 @@ export class CreateInvitationDto {
 
   @ApiProperty({
     description:
-      'URL-friendly slug for the shareable link (e.g. mazoom.com/invite/ahmed-wedding)',
+      'URL-friendly slug for the shareable link (e.g. mazoomen.com/invite/ahmed-wedding)',
     example: 'ahmed-wedding',
   })
   @IsString()
@@ -166,8 +166,8 @@ export class CreateInvitationDto {
   @ApiPropertyOptional({
     description: 'Array of image URLs to display in the invitation gallery',
     example: [
-      'https://cdn.mazoom.app/img/photo1.jpg',
-      'https://cdn.mazoom.app/img/photo2.jpg',
+      'https://cdn.mazoomen.app/img/photo1.jpg',
+      'https://cdn.mazoomen.app/img/photo2.jpg',
     ],
     type: [String],
   })
@@ -183,7 +183,7 @@ export class CreateInvitationDto {
 
   @ApiPropertyOptional({
     description: 'Optional background music URL for the invitation page',
-    example: 'https://cdn.mazoom.app/audio/wedding-nasheed.mp3',
+    example: 'https://cdn.mazoomen.app/audio/wedding-nasheed.mp3',
   })
   @IsOptional()
   @IsUrl({}, { message: 'musicUrl must be a valid URL' })

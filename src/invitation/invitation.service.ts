@@ -478,7 +478,7 @@ export class InvitationService {
           ? process.env.TRUSTED_CDN_DOMAINS.split(',').map((d) =>
               d.trim().toLowerCase(),
             )
-          : ['cdn.mazoom.app'];
+          : ['cdn.mazoomen.app'];
 
         isTrusted = allowedDomains.some(
           (domain) => hostname === domain || hostname.endsWith(`.${domain}`),

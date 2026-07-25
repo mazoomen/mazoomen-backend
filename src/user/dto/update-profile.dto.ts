@@ -11,7 +11,7 @@ import {
 export class UpdateProfileDto {
   @ApiProperty({
     description: 'User email address',
-    example: 'aiman@mazoom.app',
+    example: 'aiman@mazoomen.app',
     required: false,
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })

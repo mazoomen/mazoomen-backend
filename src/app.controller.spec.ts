@@ -15,8 +15,8 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Mazoom API is running"', () => {
-      expect(appController.getHello()).toBe('Mazoom API is running');
+    it('should return "Mazoomen API is running"', () => {
+      expect(appController.getHello()).toBe('Mazoomen API is running');
     });
   });
 });

@@ -49,8 +49,8 @@ export class TemplateController {
         title: 'Royal Gold Wedding',
         description:
           'A luxurious gold-themed wedding invitation template with elegant animations.',
-        previewImage: 'https://cdn.mazoom.app/templates/royal-gold.jpg',
-        demoLink: 'https://demo.mazoom.app/royal-gold',
+        previewImage: 'https://cdn.mazoomen.app/templates/royal-gold.jpg',
+        demoLink: 'https://demo.mazoomen.app/royal-gold',
         price: '149.99',
         editableFields: {
           eventTitle: { type: 'string', label: 'Event Title' },
@@ -94,8 +94,8 @@ export class TemplateController {
           title: 'Royal Gold Wedding',
           description:
             'A luxurious gold-themed wedding invitation template with elegant animations.',
-          previewImage: 'https://cdn.mazoom.app/templates/royal-gold.jpg',
-          demoLink: 'https://demo.mazoom.app/royal-gold',
+          previewImage: 'https://cdn.mazoomen.app/templates/royal-gold.jpg',
+          demoLink: 'https://demo.mazoomen.app/royal-gold',
           price: '149.99',
           editableFields: {
             eventTitle: { type: 'string', label: 'Event Title' },
@@ -109,8 +109,8 @@ export class TemplateController {
           title: 'Elegant Rose',
           description:
             'A romantic floral design perfect for weddings and anniversaries.',
-          previewImage: 'https://cdn.mazoom.app/templates/elegant-rose.jpg',
-          demoLink: 'https://demo.mazoom.app/elegant-rose',
+          previewImage: 'https://cdn.mazoomen.app/templates/elegant-rose.jpg',
+          demoLink: 'https://demo.mazoomen.app/elegant-rose',
           price: '99.99',
           editableFields: {
             eventTitle: { type: 'string', label: 'Event Title' },
@@ -150,8 +150,8 @@ export class TemplateController {
         title: 'Royal Gold Wedding',
         description:
           'A luxurious gold-themed wedding invitation template with elegant animations.',
-        previewImage: 'https://cdn.mazoom.app/templates/royal-gold.jpg',
-        demoLink: 'https://demo.mazoom.app/royal-gold',
+        previewImage: 'https://cdn.mazoomen.app/templates/royal-gold.jpg',
+        demoLink: 'https://demo.mazoomen.app/royal-gold',
         price: '149.99',
         editableFields: {
           eventTitle: { type: 'string', label: 'Event Title' },

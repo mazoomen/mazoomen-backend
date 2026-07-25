@@ -15,7 +15,7 @@ import {
 export class CreateUserDto {
   @ApiProperty({
     description: 'User email address',
-    example: 'newuser@mazoom.app',
+    example: 'newuser@mazoomen.app',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsNotEmpty({ message: 'Email address is required' })
@@ -84,7 +84,7 @@ export class CreateUserDto {
 export class UpdateUserByAdminDto {
   @ApiPropertyOptional({
     description: 'User email address',
-    example: 'edited@mazoom.app',
+    example: 'edited@mazoomen.app',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsOptional()

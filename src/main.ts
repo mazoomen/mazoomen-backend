@@ -77,9 +77,9 @@ async function bootstrap() {
 
   if (!isProduction) {
     const config = new DocumentBuilder()
-      .setTitle('Mazoom API')
+      .setTitle('Mazoomen API')
       .setDescription(
-        'REST API for **Mazoom** — a premium digital invitation platform. ' +
+        'REST API for **Mazoomen** — a premium digital invitation platform. ' +
           'Manage templates, orders, invitations, and guest RSVPs.',
       )
       .setVersion('1.0')
@@ -104,8 +104,8 @@ async function bootstrap() {
   }
 
   // ── Start Server ──────────────────────────────────────────────────
-  const port = process.env.PORT ?? 3000;
-  await app.listen(port);
-  logger.log(`Mazoom API running on port ${port}`);
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  await app.listen(port, '0.0.0.0');
+  logger.log(`Mazoomen API running on port ${port}`);
 }
 bootstrap();

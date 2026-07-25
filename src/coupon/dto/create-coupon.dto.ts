@@ -12,7 +12,7 @@ import {
 export class CreateCouponDto {
   @ApiProperty({
     description: 'Unique coupon code (case-insensitive)',
-    example: 'MAZOOM',
+    example: 'MAZOOMEN',
   })
   @IsString()
   @IsNotEmpty({ message: 'Coupon code is required' })

@@ -35,11 +35,11 @@ export class MailService {
     const targetEmail = toEmail || senderEmail;
     const transporter = this.getTransporter();
 
-    const subject = `Your Mazoom Verification Code: ${otpCode}`;
+    const subject = `Your Mazoomen Verification Code: ${otpCode}`;
     const htmlContent = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background-color: #FAF8F5; border-radius: 16px; border: 1px solid #EBE7DF; color: #2D3142;">
         <div style="text-align: center; margin-bottom: 20px;">
-          <h2 style="font-family: Georgia, serif; color: #0B1528; margin: 0; font-size: 24px;">Mazoom | معزوم</h2>
+          <h2 style="font-family: Georgia, serif; color: #0B1528; margin: 0; font-size: 24px;">Mazoomen | معزومين</h2>
           <p style="color: #7F8487; font-size: 13px; margin-top: 4px;">Email Verification Code</p>
         </div>
 
@@ -55,7 +55,7 @@ export class MailService {
         </div>
 
         <div style="text-align: center; font-size: 11px; color: #A0A0A0;">
-          <p style="margin: 0;">&copy; ${new Date().getFullYear()} Mazoom. All rights reserved.</p>
+          <p style="margin: 0;">&copy; ${new Date().getFullYear()} Mazoomen. All rights reserved.</p>
         </div>
       </div>
     `;
@@ -63,7 +63,7 @@ export class MailService {
     if (transporter) {
       try {
         await transporter.sendMail({
-          from: `"Mazoom" <${senderEmail}>`,
+          from: `"Mazoomen" <${senderEmail}>`,
           to: targetEmail,
           subject,
           html: htmlContent,

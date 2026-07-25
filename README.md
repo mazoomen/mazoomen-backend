@@ -59,16 +59,62 @@ $ npm run test:cov
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Deploying to Google Cloud Run
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+This application includes a production-ready, multi-stage `Dockerfile` and `.dockerignore` optimized for Google Cloud Run.
 
+#### 1. Local Container Verification
+Build and test the Docker container locally:
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Build the image
+docker build -t mazoomen-backend:latest .
+
+# Run the container locally (simulating Cloud Run port assignment)
+docker run --rm -p 8080:8080 -e PORT=8080 mazoomen-backend:latest
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+#### 2. Build and Push to Google Artifact Registry
+Ensure you have the [Google Cloud SDK (gcloud)](https://cloud.google.com/sdk) installed and authenticated.
+
+```bash
+# Set your GCP Project ID and Region
+export PROJECT_ID="your-gcp-project-id"
+export REGION="us-central1"
+export REPO_NAME="mazoomen-repo"
+export IMAGE_NAME="mazoom-backend"
+
+# Create Artifact Registry repository (if not already created)
+gcloud artifacts repositories create $REPO_NAME \
+  --repository-format=docker \
+  --location=$REGION \
+  --description="Docker repository for Mazoomen services"
+
+# Build image using Cloud Build OR local Docker:
+# Option A: Cloud Build (Recommended - no local Docker required)
+gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:latest .
+
+# Option B: Local Docker build & push
+gcloud auth configure-docker $REGION-docker.pkg.dev
+docker build -t $REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:latest .
+docker push $REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:latest
+```
+
+#### 3. Deploy to Cloud Run
+Deploy the container service with mandatory environment variables:
+
+```bash
+gcloud run deploy mazoom-backend \
+  --image=$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:latest \
+  --platform=managed \
+  --region=$REGION \
+  --allow-unauthenticated \
+  --set-env-vars="NODE_ENV=production,FRONTEND_URL=https://your-frontend-domain.com" \
+  --set-secrets="DATABASE_URL=DATABASE_URL_SECRET:latest,JWT_SECRET=JWT_SECRET:latest"
+```
+
+> [!NOTE]
+> - Cloud Run dynamically passes `PORT=8080` (or similar) into the container environment. The NestJS app listens on `process.env.PORT` bound to `0.0.0.0`.
+> - Always use GCP Secret Manager or Cloud Run `--set-secrets` for sensitive values such as `DATABASE_URL` and `JWT_SECRET`.
 
 ## Resources
 

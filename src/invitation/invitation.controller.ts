@@ -75,15 +75,15 @@ export class InvitationController {
         locationUrl: 'https://maps.google.com/?q=24.7136,46.6753',
         welcomeText: 'يسرنا دعوتكم لحضور حفل زفاف أحمد وسارة',
         images: [
-          'https://cdn.mazoom.app/img/photo1.jpg',
-          'https://cdn.mazoom.app/img/photo2.jpg',
+          'https://cdn.mazoomen.app/img/photo1.jpg',
+          'https://cdn.mazoomen.app/img/photo2.jpg',
         ],
-        musicUrl: 'https://cdn.mazoom.app/audio/wedding-nasheed.mp3',
+        musicUrl: 'https://cdn.mazoomen.app/audio/wedding-nasheed.mp3',
         createdAt: '2025-09-01T12:00:00.000Z',
         template: {
           id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
           title: 'Royal Gold Wedding',
-          thumbnailUrl: 'https://cdn.mazoom.app/templates/royal-gold.jpg',
+          thumbnailUrl: 'https://cdn.mazoomen.app/templates/royal-gold.jpg',
         },
       },
     },
@@ -225,7 +225,7 @@ export class InvitationController {
   /**
    * GET /invitations/slug/:slug
    * Public endpoint — used by the frontend to fetch invitation data
-   * when a guest opens a shareable link (e.g. mazoom.com/invite/ahmed-wedding).
+   * when a guest opens a shareable link (e.g. mazoomen.com/invite/ahmed-wedding).
    * Uses optional auth to allow owner/admin access to deactivated invitations.
    */
   @Get('slug/:slug')
@@ -253,16 +253,16 @@ export class InvitationController {
         locationUrl: 'https://maps.google.com/?q=24.7136,46.6753',
         welcomeText: 'يسرنا دعوتكم لحضور حفل زفاف أحمد وسارة',
         images: [
-          'https://cdn.mazoom.app/img/photo1.jpg',
-          'https://cdn.mazoom.app/img/photo2.jpg',
+          'https://cdn.mazoomen.app/img/photo1.jpg',
+          'https://cdn.mazoomen.app/img/photo2.jpg',
         ],
-        musicUrl: 'https://cdn.mazoom.app/audio/wedding-nasheed.mp3',
+        musicUrl: 'https://cdn.mazoomen.app/audio/wedding-nasheed.mp3',
         createdAt: '2025-09-01T12:00:00.000Z',
         template: {
           id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
           title: 'Royal Gold Wedding',
-          thumbnailUrl: 'https://cdn.mazoom.app/templates/royal-gold.jpg',
-          demoLink: 'https://demo.mazoom.app/royal-gold',
+          thumbnailUrl: 'https://cdn.mazoomen.app/templates/royal-gold.jpg',
+          demoLink: 'https://demo.mazoomen.app/royal-gold',
         },
       },
     },

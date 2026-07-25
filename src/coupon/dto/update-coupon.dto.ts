@@ -11,7 +11,7 @@ import {
 export class UpdateCouponDto {
   @ApiProperty({
     description: 'Unique coupon code (case-insensitive)',
-    example: 'MAZOOM',
+    example: 'MAZOOMEN',
   })
   @IsString()
   @IsOptional()

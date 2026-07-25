@@ -138,7 +138,7 @@ export class AuthController {
       example: {
         user: {
           id: 'c3a1e1d0-4f6a-4b2c-9e8f-1a2b3c4d5e6f',
-          email: 'ahmed@mazoom.app',
+          email: 'ahmed@mazoomen.app',
           role: 'CLIENT',
           firstName: 'Ahmed',
           lastName: 'Al-Rashid',
@@ -194,7 +194,7 @@ export class AuthController {
       example: {
         user: {
           id: 'c3a1e1d0-4f6a-4b2c-9e8f-1a2b3c4d5e6f',
-          email: 'ahmed@mazoom.app',
+          email: 'ahmed@mazoomen.app',
           role: 'CLIENT',
           firstName: 'Ahmed',
           lastName: 'Al-Rashid',

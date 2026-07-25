@@ -12,7 +12,7 @@ import {
 export class RegisterDto {
   @ApiProperty({
     description: 'User email address',
-    example: 'aiman@mazoom.app',
+    example: 'aiman@mazoomen.app',
   })
   @IsEmail()
   @Transform(({ value }) => value?.toLowerCase().trim())

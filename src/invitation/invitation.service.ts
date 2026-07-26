@@ -433,7 +433,7 @@ export class InvitationService {
     const excused = rsvps.filter((r) => r.attendance === RsvpAttendance.NO);
 
     const totalAttending = attending.reduce(
-      (sum, r) => sum + 1 + r.guestsCount,
+      (sum, r) => sum + (r.guestsCount > 0 ? r.guestsCount : 1),
       0,
     );
     const totalExcused = excused.length;
@@ -444,7 +444,7 @@ export class InvitationService {
         totalResponses,
         totalAttending,
         totalExcused,
-        totalCompanions: attending.reduce((sum, r) => sum + r.guestsCount, 0),
+        totalCompanions: attending.reduce((sum, r) => sum + Math.max(0, r.guestsCount - 1), 0),
       },
       rsvps,
     };
@@ -631,6 +631,24 @@ export class InvitationService {
       },
       include: this.invitationInclude,
     });
+
+    // Send notification to invitation owner
+    if (invitation.purchase?.userId) {
+      try {
+        const eventName = invitation.eventTitle || 'Invitation';
+        await this.prisma.notification.create({
+          data: {
+            userId: invitation.purchase.userId,
+            title: 'New Guest Photo Uploaded',
+            titleAr: 'صورة جديدة من ضيف',
+            message: `A guest uploaded a new memory photo to your invitation '${eventName}'.`,
+            messageAr: `قام أحد الضيوف برفع صورة ذكرى جديدة في دعوة '${eventName}'.`,
+          },
+        });
+      } catch (notifyErr) {
+        console.error('Failed to create guest photo upload notification:', notifyErr);
+      }
+    }
 
     // 9. Invalidate caches for this invitation
     await this.cacheManager.del(`invitations:slug:${invitation.slug}`);

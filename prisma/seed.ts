@@ -71,7 +71,11 @@ async function main() {
   const template1 = await prisma.template.create({
     data: {
       title: 'Royal Gold Wedding',
+      titleAr: 'دعوة زفاف الذهب الملكي',
+      titleEn: 'Royal Gold Wedding',
       description: 'تصميم زفاف ذهبي فاخر مع مؤثرات تساقط الثلوج وموسيقى خلفية ونظام تأكيد حضور متكامل.',
+      descriptionAr: 'تصميم زفاف ذهبي فاخر مع مؤثرات تساقط الثلوج وموسيقى خلفية ونظام تأكيد حضور متكامل.',
+      descriptionEn: 'A luxurious gold-themed wedding invitation featuring snowfall effects, background music, and an integrated RSVP system.',
       previewImage: '/images/royal-gold-preview.png',
       price: 150.00,
       demoLink: '/invite/royal-gold-demo',
@@ -84,7 +88,11 @@ async function main() {
   const template2 = await prisma.template.create({
     data: {
       title: 'Watercolor Garden Wedding',
+      titleAr: 'دعوة زفاف حديقة الألوان المائية',
+      titleEn: 'Watercolor Garden Wedding',
       description: 'تصميم زفاف ريفي ساحر مستوحى من الطبيعة مع خلفية فيديو للحديقة الغناء ونظام متكامل لتأكيد الحضور.',
+      descriptionAr: 'تصميم زفاف ريفي ساحر مستوحى من الطبيعة مع خلفية فيديو للحديقة الغناء ونظام متكامل لتأكيد الحضور.',
+      descriptionEn: 'A charming rustic garden wedding invitation design inspired by nature with dynamic video background and integrated RSVP system.',
       previewImage: '/images/watercolor-garden-preview.png',
       price: 150.00,
       demoLink: '/invite/garden-demo',
@@ -97,7 +105,11 @@ async function main() {
   const template3 = await prisma.template.create({
     data: {
       title: 'Boho Terracotta Wedding',
+      titleAr: 'دعوة زفاف بوهيمي تراكوتا',
+      titleEn: 'Boho Terracotta Wedding',
       description: 'تصميم زفاف بوهيمي دافئ مزين بالزهور المجففة وتدرجات التراكوتا مع مؤثرات تساقط أوراق الشجر وموسيقى خلفية.',
+      descriptionAr: 'تصميم زفاف بوهيمي دافئ مزين بالزهور المجففة وتدرجات التراكوتا مع مؤثرات تساقط أوراق الشجر وموسيقى خلفية.',
+      descriptionEn: 'A warm bohemian wedding invitation design with dried flower accents, terracotta tones, falling leaf effects, and background music.',
       previewImage: '/images/terracotta-preview.png',
       price: 150.00,
       demoLink: '/invite/terracotta-demo',
@@ -110,7 +122,11 @@ async function main() {
   const template4 = await prisma.template.create({
     data: {
       title: 'Watercolor Lily Wedding',
+      titleAr: 'دعوة زفاف زنبق الألوان المائية',
+      titleEn: 'Watercolor Lily Wedding',
       description: 'تصميم زفاف ناعم ومميز مستوحى من زهور الزنبق المائية وتدرجات اللافندر مع مؤثرات تساقط البتلات وموسيقى خلفية.',
+      descriptionAr: 'تصميم زفاف ناعم ومميز مستوحى من زهور الزنبق المائية وتدرجات اللافندر مع مؤثرات تساقط البتلات وموسيقى خلفية.',
+      descriptionEn: 'A delicate wedding invitation design inspired by water lilies and lavender hues, with falling petals and background music.',
       previewImage: '/images/lily-preview.png',
       price: 150.00,
       demoLink: '/invite/lily-demo',
@@ -123,7 +139,11 @@ async function main() {
   const template5 = await prisma.template.create({
     data: {
       title: 'Emerald Luxury Wedding',
+      titleAr: 'دعوة زفاف الزمرد الفاخر',
+      titleEn: 'Emerald Luxury Wedding',
       description: 'تصميم زفاف زمردي فاخر باللون الأخضر الداكن والذهبي الكلاسيكي مع مؤثرات تساقط الأوراق الذهبية وموسيقى خلفية متناغمة.',
+      descriptionAr: 'تصميم زفاف زمردي فاخر باللون الأخضر الداكن والذهبي الكلاسيكي مع مؤثرات تساقط الأوراق الذهبية وموسيقى خلفية متناغمة.',
+      descriptionEn: 'A luxurious emerald green and classic gold wedding invitation with gold leaf particles animation and background music.',
       previewImage: '/images/emerald-preview.png',
       price: 150.00,
       demoLink: '/invite/emerald-demo',
@@ -136,9 +156,11 @@ async function main() {
   const template6 = await prisma.template.create({
     data: {
       title: 'White Gypsophila Wedding',
+      titleAr: 'دعوة زفاف الجبسوفيلا البيضاء',
       titleEn: 'White Gypsophila Wedding',
-      titleAr: 'White Gypsophila Wedding',
       description: 'تصميم زفاف أبيض ناصع مزين بزهور الجبسوفيلا البيضاء الناعمة مع خلفية فيديو أنيقة ومؤثرات تساقط الزهور.',
+      descriptionAr: 'تصميم زفاف أبيض ناصع مزين بزهور الجبسوفيلا البيضاء الناعمة مع خلفية فيديو أنيقة ومؤثرات تساقط الزهور.',
+      descriptionEn: 'An elegant pure white wedding invitation adorned with white gypsophila flowers, featuring video background and falling floral effects.',
       previewImage: '/images/white-preview.png',
       price: 150.00,
       demoLink: '/invite/white-gypsophila-demo',
@@ -151,11 +173,11 @@ async function main() {
   const template7 = await prisma.template.create({
     data: {
       title: 'Flow Wedding',
+      titleAr: 'دعوة زفاف انسيابية فاخرة',
       titleEn: 'Flow Wedding',
-      titleAr: 'تصميم انسيابي فاخر',
       description: 'تصميم زفاف انسيابي فاخر مع خلفية فيديو فلو متدفقة ونظام متكامل لتأكيد الحضور.',
-      descriptionEn: 'A luxury flowing wedding design with dynamic flow video background and integrated RSVP system.',
       descriptionAr: 'تصميم زفاف انسيابي فاخر مع خلفية فيديو فلو متدفقة ونظام متكامل لتأكيد الحضور.',
+      descriptionEn: 'A luxury flowing wedding design with dynamic flow video background and integrated RSVP system.',
       previewImage: '/images/flow-preview.png',
       price: 150.00,
       demoLink: '/invite/flow-demo',
@@ -168,11 +190,11 @@ async function main() {
   const template8 = await prisma.template.create({
     data: {
       title: 'Forest Foliage Wedding',
+      titleAr: 'دعوة زفاف أوراق الغابة الخضراء',
       titleEn: 'Forest Foliage Wedding',
-      titleAr: 'تصميم أوراق الشجر الغناء',
       description: 'تصميم زفاف راقٍ بألوان أوراق الشجر الداكنة والذهبي الدافئ، مع خلفية فيديو انسيابية ومؤثرات جزيئات متساقطة.',
-      descriptionEn: 'A refined wedding design with deep forest green and gold hues, dynamic flowing background video, and delicate falling particles.',
       descriptionAr: 'تصميم زفاف راقٍ بألوان أوراق الشجر الداكنة والذهبي الدافئ، مع خلفية فيديو انسيابية ومؤثرات جزيئات متساقطة.',
+      descriptionEn: 'A refined wedding design with deep forest green and gold hues, dynamic flowing background video, and delicate falling particles.',
       previewImage: '/images/forest-foliage-preview.png',
       price: 150.00,
       demoLink: '/invite/forest-foliage-demo',

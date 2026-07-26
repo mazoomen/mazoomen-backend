@@ -15,6 +15,7 @@ import { CreateUserDto, UpdateUserByAdminDto } from './dto/admin-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuditLogService } from '../common/services/audit-log.service';
 import { MailService } from '../mail/mail.service';
+import { MediaService } from '../media/media.service';
 
 /** User fields safe to return in API responses (excludes passwordHash). */
 type SafeUser = Omit<User, 'passwordHash'>;
@@ -28,6 +29,7 @@ export class UserService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly auditLogService: AuditLogService,
     private readonly mailService: MailService,
+    private readonly mediaService: MediaService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -134,6 +136,7 @@ export class UserService {
     if (dto.phoneNumber && dto.phoneNumber !== user.phoneNumber) {
       updateData.phoneNumber = dto.phoneNumber;
     }
+    if (dto.avatarUrl !== undefined) updateData.avatarUrl = dto.avatarUrl;
     if (dto.password) {
       updateData.passwordHash = await this.hashPassword(dto.password);
     }
@@ -152,6 +155,52 @@ export class UserService {
         userAgent || 'unknown',
       );
     }
+
+    return this.excludePassword(updatedUser);
+  }
+
+  /**
+   * Upload profile avatar picture for authenticated user.
+   */
+  async uploadAvatar(userId: string, file: Express.Multer.File): Promise<SafeUser> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('errors.user_not_found');
+    }
+
+    const media = await this.mediaService.uploadMedia(file, { userId });
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: media.url },
+    });
+
+    await this.cacheManager.del(`users:id:${userId}`);
+
+    return this.excludePassword(updatedUser);
+  }
+
+  /**
+   * Remove profile avatar picture for authenticated user.
+   */
+  async removeAvatar(userId: string): Promise<SafeUser> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('errors.user_not_found');
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: null },
+    });
+
+    await this.cacheManager.del(`users:id:${userId}`);
 
     return this.excludePassword(updatedUser);
   }
@@ -185,6 +234,7 @@ export class UserService {
         firstName: dto.firstName,
         lastName: dto.lastName,
         phoneNumber: dto.phoneNumber,
+        avatarUrl: dto.avatarUrl || null,
         role: dto.role,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
       },
@@ -221,6 +271,7 @@ export class UserService {
     if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
     if (dto.role !== undefined) updateData.role = dto.role;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
+    if (dto.avatarUrl !== undefined) updateData.avatarUrl = dto.avatarUrl;
     if (dto.email && dto.email !== user.email) updateData.email = dto.email;
     if (dto.phoneNumber && dto.phoneNumber !== user.phoneNumber) {
       updateData.phoneNumber = dto.phoneNumber;

@@ -16,6 +16,7 @@ model User {
   firstName        String            @map("first_name")
   lastName         String            @map("last_name")
   phoneNumber      String?           @unique @map("phone_number")
+  avatarUrl        String?           @map("avatar_url")
   isActive         Boolean           @default(true) @map("is_active")
   updatedAt        DateTime          @updatedAt @map("updated_at")
   purchaseRequests PurchaseRequest[]

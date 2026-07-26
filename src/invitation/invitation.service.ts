@@ -404,6 +404,10 @@ export class InvitationService {
   // ──────────────────────────────────────────────
 
   async findRsvps(invitationId: string, userId: string, userRole?: string) {
+    const cacheKey = `invitations:rsvps:${invitationId}`;
+    const cached = await this.cacheManager.get<any>(cacheKey);
+    if (cached) return cached;
+
     // 1. Find the invitation
     const invitation = await this.prisma.invitation.findUnique({
       where: { id: invitationId },
@@ -438,7 +442,7 @@ export class InvitationService {
     );
     const totalExcused = excused.length;
 
-    return {
+    const result = {
       invitationId,
       statistics: {
         totalResponses,
@@ -448,6 +452,10 @@ export class InvitationService {
       },
       rsvps,
     };
+
+    // Cache RSVPs list & statistics for 10 minutes (600,000 ms)
+    await this.cacheManager.set(cacheKey, result, 600000);
+    return result;
   }
 
   // ──────────────────────────────────────────────
@@ -645,6 +653,7 @@ export class InvitationService {
             messageAr: `قام أحد الضيوف برفع صورة ذكرى جديدة في دعوة '${eventName}'.`,
           },
         });
+        await this.cacheManager.del(`notifications:user:${invitation.purchase.userId}`);
       } catch (notifyErr) {
         console.error('Failed to create guest photo upload notification:', notifyErr);
       }

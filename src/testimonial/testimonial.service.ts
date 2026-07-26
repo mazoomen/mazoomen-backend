@@ -60,6 +60,8 @@ export class TestimonialService {
 
     // Invalidate testimonials cache
     await this.cacheManager.del('testimonials:all');
+    await this.cacheManager.del('testimonials:admin:all');
+    await this.cacheManager.del(`purchase-requests:user:${userId}`);
 
     return result;
   }
@@ -143,7 +145,11 @@ export class TestimonialService {
   // Get all Testimonials (Admin only)
   // ──────────────────────────────────────────────
   async findAllAdmin() {
-    return this.prisma.testimonial.findMany({
+    const cacheKey = 'testimonials:admin:all';
+    const cached = await this.cacheManager.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const testimonials = await this.prisma.testimonial.findMany({
       where: { isDeleted: false },
       include: {
         purchase: {
@@ -168,6 +174,9 @@ export class TestimonialService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    await this.cacheManager.set(cacheKey, testimonials, 1800000);
+    return testimonials;
   }
 
   // ──────────────────────────────────────────────
@@ -190,8 +199,9 @@ export class TestimonialService {
       },
     });
 
-    // Invalidate public landing page testimonials cache
+    // Invalidate testimonials cache
     await this.cacheManager.del('testimonials:all');
+    await this.cacheManager.del('testimonials:admin:all');
 
     return { success: true };
   }

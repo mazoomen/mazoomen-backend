@@ -1,16 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class PurchaseService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   // ──────────────────────────────────────────────
   // Client's own purchases
   // ──────────────────────────────────────────────
 
   async findMyPurchases(userId: string) {
-    return this.prisma.purchase.findMany({
+    const cacheKey = `purchases:user:${userId}`;
+    const cached = await this.cacheManager.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const purchases = await this.prisma.purchase.findMany({
       where: { userId },
       include: {
         template: {
@@ -59,6 +68,10 @@ export class PurchaseService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Cache purchases for 30 minutes (1,800,000 ms)
+    await this.cacheManager.set(cacheKey, purchases, 1800000);
+    return purchases;
   }
 
   // ──────────────────────────────────────────────
@@ -66,7 +79,11 @@ export class PurchaseService {
   // ──────────────────────────────────────────────
 
   async findAll() {
-    return this.prisma.purchase.findMany({
+    const cacheKey = 'purchases:all';
+    const cached = await this.cacheManager.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const purchases = await this.prisma.purchase.findMany({
       include: {
         user: {
           select: {
@@ -90,5 +107,9 @@ export class PurchaseService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Cache list for 30 minutes (1,800,000 ms)
+    await this.cacheManager.set(cacheKey, purchases, 1800000);
+    return purchases;
   }
 }

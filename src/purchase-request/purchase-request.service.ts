@@ -1,9 +1,6 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { RequestStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,7 +11,10 @@ import {
 
 @Injectable()
 export class PurchaseRequestService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   // ──────────────────────────────────────────────
   // Create Purchase Request (Client only)
@@ -163,6 +163,13 @@ export class PurchaseRequestService {
       }
     }
 
+    await this.cacheManager.del(`purchase-requests:user:${userId}`);
+    await this.cacheManager.del('purchase-requests:all');
+    if (isAutoApproved) {
+      await this.cacheManager.del(`purchases:user:${userId}`);
+      await this.cacheManager.del('purchases:all');
+    }
+
     return request;
   }
 
@@ -171,7 +178,11 @@ export class PurchaseRequestService {
   // ──────────────────────────────────────────────
 
   async findMyRequests(userId: string) {
-    return this.prisma.purchaseRequest.findMany({
+    const cacheKey = `purchase-requests:user:${userId}`;
+    const cached = await this.cacheManager.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const requests = await this.prisma.purchaseRequest.findMany({
       where: { userId },
       include: {
         template: {
@@ -197,6 +208,9 @@ export class PurchaseRequestService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    await this.cacheManager.set(cacheKey, requests, 1800000);
+    return requests;
   }
 
   // ──────────────────────────────────────────────
@@ -204,7 +218,11 @@ export class PurchaseRequestService {
   // ──────────────────────────────────────────────
 
   async findAll() {
-    return this.prisma.purchaseRequest.findMany({
+    const cacheKey = 'purchase-requests:all';
+    const cached = await this.cacheManager.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const requests = await this.prisma.purchaseRequest.findMany({
       include: {
         user: {
           select: {
@@ -239,6 +257,9 @@ export class PurchaseRequestService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    await this.cacheManager.set(cacheKey, requests, 1800000);
+    return requests;
   }
 
   // ──────────────────────────────────────────────
@@ -309,6 +330,12 @@ export class PurchaseRequestService {
         });
       }
 
+      // Invalidate caches
+      await this.cacheManager.del(`purchase-requests:user:${request.userId}`);
+      await this.cacheManager.del('purchase-requests:all');
+      await this.cacheManager.del(`purchases:user:${request.userId}`);
+      await this.cacheManager.del('purchases:all');
+
       return updatedRequest;
     });
   }
@@ -343,9 +370,14 @@ export class PurchaseRequestService {
       });
     }
 
-    return this.prisma.purchaseRequest.update({
+    const updated = await this.prisma.purchaseRequest.update({
       where: { id },
       data: { status: RequestStatus.CANCELLED },
     });
+
+    await this.cacheManager.del(`purchase-requests:user:${request.userId}`);
+    await this.cacheManager.del('purchase-requests:all');
+
+    return updated;
   }
 }

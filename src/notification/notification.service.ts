@@ -1,15 +1,27 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class NotificationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   async findAllForUser(userId: string) {
-    return this.prisma.notification.findMany({
+    const cacheKey = `notifications:user:${userId}`;
+    const cached = await this.cacheManager.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const notifications = await this.prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
+
+    await this.cacheManager.set(cacheKey, notifications, 300000);
+    return notifications;
   }
 
   async markAsRead(userId: string, id: string) {
@@ -21,17 +33,23 @@ export class NotificationService {
       throw new NotFoundException('Notification not found');
     }
 
-    return this.prisma.notification.update({
+    const updated = await this.prisma.notification.update({
       where: { id },
       data: { isRead: true },
     });
+
+    await this.cacheManager.del(`notifications:user:${userId}`);
+    return updated;
   }
 
   async markAllAsRead(userId: string) {
-    return this.prisma.notification.updateMany({
+    const updated = await this.prisma.notification.updateMany({
       where: { userId, isRead: false },
       data: { isRead: true },
     });
+
+    await this.cacheManager.del(`notifications:user:${userId}`);
+    return updated;
   }
 
   async remove(userId: string, id: string) {
@@ -43,8 +61,11 @@ export class NotificationService {
       throw new NotFoundException('Notification not found');
     }
 
-    return this.prisma.notification.delete({
+    const deleted = await this.prisma.notification.delete({
       where: { id },
     });
+
+    await this.cacheManager.del(`notifications:user:${userId}`);
+    return deleted;
   }
 }

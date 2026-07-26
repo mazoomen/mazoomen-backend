@@ -1,14 +1,19 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { ContactStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateContactDto, UpdateContactStatusDto } from './dto';
 
 @Injectable()
 export class ContactService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   async create(userId: string | undefined, dto: CreateContactDto) {
-    return this.prisma.contactMessage.create({
+    const created = await this.prisma.contactMessage.create({
       data: {
         userId: userId || null,
         email: dto.email.trim().toLowerCase(),
@@ -16,10 +21,17 @@ export class ContactService {
         message: dto.message.trim(),
       },
     });
+
+    await this.cacheManager.del('contact:all');
+    return created;
   }
 
   async findAllAdmin() {
-    return this.prisma.contactMessage.findMany({
+    const cacheKey = 'contact:all';
+    const cached = await this.cacheManager.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const messages = await this.prisma.contactMessage.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
@@ -32,6 +44,9 @@ export class ContactService {
         },
       },
     });
+
+    await this.cacheManager.set(cacheKey, messages, 900000);
+    return messages;
   }
 
   async replyAdmin(id: string, replyText: string) {
@@ -62,8 +77,10 @@ export class ContactService {
           messageAr: replyText.trim(),
         },
       });
+      await this.cacheManager.del(`notifications:user:${existing.userId}`);
     }
 
+    await this.cacheManager.del('contact:all');
     return updated;
   }
 
@@ -75,10 +92,13 @@ export class ContactService {
       throw new NotFoundException('Contact message not found');
     }
 
-    return this.prisma.contactMessage.update({
+    const updated = await this.prisma.contactMessage.update({
       where: { id },
       data: { status: dto.status },
     });
+
+    await this.cacheManager.del('contact:all');
+    return updated;
   }
 
   async removeAdmin(id: string) {
@@ -89,8 +109,11 @@ export class ContactService {
       throw new NotFoundException('Contact message not found');
     }
 
-    return this.prisma.contactMessage.delete({
+    const deleted = await this.prisma.contactMessage.delete({
       where: { id },
     });
+
+    await this.cacheManager.del('contact:all');
+    return deleted;
   }
 }

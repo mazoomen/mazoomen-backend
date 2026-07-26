@@ -93,6 +93,10 @@ export class UserService {
    * Fetch profile of an authenticated user.
    */
   async getProfile(userId: string): Promise<SafeUser> {
+    const cacheKey = `users:profile:${userId}`;
+    const cached = await this.cacheManager.get<SafeUser>(cacheKey);
+    if (cached) return cached;
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -101,7 +105,9 @@ export class UserService {
       throw new NotFoundException('errors.user_not_found');
     }
 
-    return this.excludePassword(user);
+    const safeUser = this.excludePassword(user);
+    await this.cacheManager.set(cacheKey, safeUser, 3600000);
+    return safeUser;
   }
 
   /**
@@ -147,6 +153,8 @@ export class UserService {
     });
 
     await this.cacheManager.del(`users:id:${userId}`);
+    await this.cacheManager.del(`users:profile:${userId}`);
+    await this.cacheManager.del('users:all');
 
     if (dto.password) {
       await this.auditLogService.logPasswordChange(
@@ -179,6 +187,8 @@ export class UserService {
     });
 
     await this.cacheManager.del(`users:id:${userId}`);
+    await this.cacheManager.del(`users:profile:${userId}`);
+    await this.cacheManager.del('users:all');
 
     return this.excludePassword(updatedUser);
   }
@@ -201,6 +211,8 @@ export class UserService {
     });
 
     await this.cacheManager.del(`users:id:${userId}`);
+    await this.cacheManager.del(`users:profile:${userId}`);
+    await this.cacheManager.del('users:all');
 
     return this.excludePassword(updatedUser);
   }
@@ -213,10 +225,16 @@ export class UserService {
    * Fetch all registered users (Admin only). Excludes passwordHash.
    */
   async findAll(): Promise<SafeUser[]> {
+    const cacheKey = 'users:all';
+    const cached = await this.cacheManager.get<SafeUser[]>(cacheKey);
+    if (cached) return cached;
+
     const users = await this.prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
     });
-    return users.map((user) => this.excludePassword(user));
+    const safeUsers = users.map((user) => this.excludePassword(user));
+    await this.cacheManager.set(cacheKey, safeUsers, 3600000);
+    return safeUsers;
   }
 
   /**
@@ -239,6 +257,8 @@ export class UserService {
         isActive: dto.isActive !== undefined ? dto.isActive : true,
       },
     });
+
+    await this.cacheManager.del('users:all');
 
     return this.excludePassword(user);
   }
@@ -286,6 +306,8 @@ export class UserService {
     });
 
     await this.cacheManager.del(`users:id:${id}`);
+    await this.cacheManager.del(`users:profile:${id}`);
+    await this.cacheManager.del('users:all');
 
     if (dto.password) {
       await this.auditLogService.logPasswordChange(

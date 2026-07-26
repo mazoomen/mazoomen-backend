@@ -3,15 +3,20 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCouponDto, UpdateCouponDto } from './dto';
-
 import { RequestStatus } from '@prisma/client';
 
 @Injectable()
 export class CouponService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   // ──────────────────────────────────────────────
   // Validate Coupon (Public/Client)
@@ -22,9 +27,17 @@ export class CouponService {
     }
 
     const uppercaseCode = code.trim().toUpperCase();
-    const coupon = await this.prisma.coupon.findUnique({
-      where: { code: uppercaseCode },
-    });
+    const cacheKey = `coupons:code:${uppercaseCode}`;
+    let coupon = await this.cacheManager.get<any>(cacheKey);
+
+    if (!coupon) {
+      coupon = await this.prisma.coupon.findUnique({
+        where: { code: uppercaseCode },
+      });
+      if (coupon) {
+        await this.cacheManager.set(cacheKey, coupon, 3600000);
+      }
+    }
 
     if (!coupon || coupon.isDeleted || !coupon.isActive) {
       throw new BadRequestException('errors.invalid_or_expired_coupon');
@@ -72,7 +85,7 @@ export class CouponService {
       throw new ConflictException('errors.coupon_code_exists');
     }
 
-    return this.prisma.coupon.create({
+    const created = await this.prisma.coupon.create({
       data: {
         code: uppercaseCode,
         discountPercent: dto.discountPercent,
@@ -80,13 +93,20 @@ export class CouponService {
         isActive: dto.isActive ?? true,
       },
     });
+
+    await this.cacheManager.del('coupons:all');
+    return created;
   }
 
   // ──────────────────────────────────────────────
   // Find All Coupons (Admin)
   // ──────────────────────────────────────────────
   async findAll() {
-    return this.prisma.coupon.findMany({
+    const cacheKey = 'coupons:all';
+    const cached = await this.cacheManager.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const coupons = await this.prisma.coupon.findMany({
       include: {
         _count: {
           select: { purchaseRequests: true },
@@ -124,12 +144,19 @@ export class CouponService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    await this.cacheManager.set(cacheKey, coupons, 3600000);
+    return coupons;
   }
 
   // ──────────────────────────────────────────────
   // Find One Coupon (Admin)
   // ──────────────────────────────────────────────
   async findOne(id: string) {
+    const cacheKey = `coupons:id:${id}`;
+    const cached = await this.cacheManager.get<any>(cacheKey);
+    if (cached) return cached;
+
     const coupon = await this.prisma.coupon.findUnique({
       where: { id },
       include: {
@@ -173,6 +200,7 @@ export class CouponService {
       throw new NotFoundException(`errors.coupon_not_found|${id}`);
     }
 
+    await this.cacheManager.set(cacheKey, coupon, 3600000);
     return coupon;
   }
 
@@ -216,10 +244,19 @@ export class CouponService {
       dataToUpdate.isActive = dto.isActive;
     }
 
-    return this.prisma.coupon.update({
+    const updated = await this.prisma.coupon.update({
       where: { id },
       data: dataToUpdate,
     });
+
+    await this.cacheManager.del('coupons:all');
+    await this.cacheManager.del(`coupons:id:${id}`);
+    await this.cacheManager.del(`coupons:code:${coupon.code}`);
+    if (updated.code !== coupon.code) {
+      await this.cacheManager.del(`coupons:code:${updated.code}`);
+    }
+
+    return updated;
   }
 
   // ──────────────────────────────────────────────
@@ -227,31 +264,46 @@ export class CouponService {
   // ──────────────────────────────────────────────
   async toggleActive(id: string) {
     const coupon = await this.findOne(id);
-    return this.prisma.coupon.update({
+    const updated = await this.prisma.coupon.update({
       where: { id },
       data: { isActive: !coupon.isActive },
     });
+
+    await this.cacheManager.del('coupons:all');
+    await this.cacheManager.del(`coupons:id:${id}`);
+    await this.cacheManager.del(`coupons:code:${coupon.code}`);
+    return updated;
   }
 
   // ──────────────────────────────────────────────
   // Soft Delete Coupon (Admin)
   // ──────────────────────────────────────────────
   async softDelete(id: string) {
-    await this.findOne(id);
-    return this.prisma.coupon.update({
+    const coupon = await this.findOne(id);
+    const updated = await this.prisma.coupon.update({
       where: { id },
       data: { isDeleted: true, isActive: false },
     });
+
+    await this.cacheManager.del('coupons:all');
+    await this.cacheManager.del(`coupons:id:${id}`);
+    await this.cacheManager.del(`coupons:code:${coupon.code}`);
+    return updated;
   }
 
   // ──────────────────────────────────────────────
   // Restore Soft-Deleted Coupon (Admin)
   // ──────────────────────────────────────────────
   async restore(id: string) {
-    await this.findOne(id);
-    return this.prisma.coupon.update({
+    const coupon = await this.findOne(id);
+    const updated = await this.prisma.coupon.update({
       where: { id },
       data: { isDeleted: false, isActive: true },
     });
+
+    await this.cacheManager.del('coupons:all');
+    await this.cacheManager.del(`coupons:id:${id}`);
+    await this.cacheManager.del(`coupons:code:${coupon.code}`);
+    return updated;
   }
 }

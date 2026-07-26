@@ -4,7 +4,10 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateChargeDto } from './dto/create-charge.dto';
@@ -20,6 +23,7 @@ export class PaymentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {
     this.tapSecretKey =
       this.configService.get<string>('TAP_SECRET_KEY') ||
@@ -244,6 +248,12 @@ export class PaymentService {
    * Helper to retrieve order status by ID & auto-verify against Tap API if PENDING
    */
   async getOrderStatus(orderId: string, tapId?: string) {
+    const cacheKey = `orders:id:${orderId}`;
+    const cached = await this.cacheManager.get<any>(cacheKey);
+    if (cached && (cached.status === OrderStatus.COMPLETED || cached.status === OrderStatus.FAILED)) {
+      return cached;
+    }
+
     let order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
@@ -311,7 +321,7 @@ export class PaymentService {
       }
     }
 
-    return {
+    const result = {
       id: order.id,
       customerName: order.customerName,
       customerEmail: order.customerEmail,
@@ -321,6 +331,12 @@ export class PaymentService {
       failureReason: order.failureReason,
       createdAt: order.createdAt,
     };
+
+    if (order.status === OrderStatus.COMPLETED || order.status === OrderStatus.FAILED) {
+      await this.cacheManager.set(cacheKey, result, 300000);
+    }
+
+    return result;
   }
 
   /**
@@ -389,6 +405,10 @@ export class PaymentService {
               `Template #${templateId} successfully UNLOCKED for user ${user.email}`,
             );
           }
+          await this.cacheManager.del(`purchase-requests:user:${user.id}`);
+          await this.cacheManager.del('purchase-requests:all');
+          await this.cacheManager.del(`purchases:user:${user.id}`);
+          await this.cacheManager.del('purchases:all');
         }
       }
     } catch (err: any) {

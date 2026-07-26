@@ -130,13 +130,15 @@ export class RsvpService {
             }${dto.message ? `. الرسالة: "${dto.message}"` : ''}`,
           },
         });
+        await this.cacheManager.del(`notifications:user:${invitation.purchase.userId}`);
       } catch (notifyErr) {
         console.error('Failed to create RSVP notification:', notifyErr);
       }
     }
 
-    // Invalidate the invitation slug cache so guestbook updates instantly
+    // Invalidate the invitation slug cache and rsvps list cache so guestbook updates instantly
     await this.cacheManager.del(`invitations:slug:${invitation.slug}`);
+    await this.cacheManager.del(`invitations:rsvps:${dto.invitationId}`);
 
     return rsvp;
   }
@@ -166,6 +168,7 @@ export class RsvpService {
 
     // Invalidate caches so updates reflect instantly
     await this.cacheManager.del(`invitations:slug:${rsvp.invitation.slug}`);
+    await this.cacheManager.del(`invitations:rsvps:${rsvp.invitationId}`);
 
     return updated;
   }
@@ -195,6 +198,7 @@ export class RsvpService {
 
     // Invalidate caches so statistics and lists update instantly
     await this.cacheManager.del(`invitations:slug:${rsvp.invitation.slug}`);
+    await this.cacheManager.del(`invitations:rsvps:${rsvp.invitationId}`);
 
     return updated;
   }

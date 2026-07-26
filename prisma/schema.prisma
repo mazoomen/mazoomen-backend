@@ -21,6 +21,8 @@ model User {
   purchaseRequests PurchaseRequest[]
   purchases        Purchase[]
   refreshTokens    RefreshToken[]
+  contactMessages  ContactMessage[]
+  notifications    Notification[]
 
   @@map("users")
 }
@@ -314,6 +316,52 @@ model EmailOtp {
   @@index([email])
   @@map("email_otps")
 }
+
+/// Contact Us submissions from site visitors/users
+model ContactMessage {
+  id         String        @id @default(uuid()) @db.Uuid
+  userId     String?       @map("user_id") @db.Uuid
+  email      String
+  phone      String
+  message    String
+  adminReply String?       @map("admin_reply")
+  repliedAt  DateTime?     @map("replied_at")
+  status     ContactStatus @default(UNREAD)
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+  user       User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+enum ContactStatus {
+  UNREAD
+  READ
+  RESOLVED
+  REPLIED
+}
+
+/// In-app user notifications (e.g. admin replies to support messages)
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String
+  titleAr   String?  @map("title_ar")
+  message   String
+  messageAr String?  @map("message_ar")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+
 
 
 

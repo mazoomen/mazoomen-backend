@@ -23,10 +23,14 @@ import { HealthModule } from './health/health.module';
 import { CouponModule } from './coupon/coupon.module';
 import { PaymentModule } from './payment/payment.module';
 import { MailModule } from './mail/mail.module';
+import { ContactModule } from './contact/contact.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
     MailModule,
+    ContactModule,
+    NotificationModule,
     // Load .env variables globally
     ConfigModule.forRoot({ isGlobal: true }),
     AbuseModule,

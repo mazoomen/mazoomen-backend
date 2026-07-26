@@ -79,6 +79,14 @@ export class CreateUserDto {
   @IsBoolean({ message: 'isActive must be a boolean value' })
   @IsOptional()
   isActive?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Profile avatar image URL',
+    example: 'https://example.com/avatar.jpg',
+  })
+  @IsString()
+  @IsOptional()
+  avatarUrl?: string;
 }
 
 export class UpdateUserByAdminDto {
@@ -148,4 +156,12 @@ export class UpdateUserByAdminDto {
   @IsBoolean({ message: 'isActive must be a boolean value' })
   @IsOptional()
   isActive?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Profile avatar image URL',
+    example: 'https://example.com/avatar.jpg',
+  })
+  @IsString()
+  @IsOptional()
+  avatarUrl?: string;
 }

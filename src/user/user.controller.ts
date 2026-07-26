@@ -1,19 +1,26 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
   Post,
   Put,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -86,6 +93,44 @@ export class UserController {
     const ip = this.abuseService.extractIp(request);
     const userAgent = request.headers['user-agent'] || '';
     return this.userService.updateProfile(userId, dto, ip, userAgent);
+  }
+
+  @Post('profile/avatar')
+  @ApiOperation({
+    summary: "Upload current user's profile avatar image",
+    description: 'Accepts an image file (multipart/form-data) under key "file", uploads it via MediaService, and sets it as user avatarUrl.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: 'Profile avatar uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'No file uploaded or invalid file format' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 20 * 1024 * 1024, // 20MB limit
+      },
+    }),
+  )
+  uploadAvatar(
+    @GetUser('id') userId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    return this.userService.uploadAvatar(userId, file);
+  }
+
+  @Delete('profile/avatar')
+  @ApiOperation({
+    summary: "Remove current user's profile avatar image",
+    description: 'Clears the user avatarUrl field.',
+  })
+  @ApiResponse({ status: 200, description: 'Profile avatar removed successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  removeAvatar(@GetUser('id') userId: string) {
+    return this.userService.removeAvatar(userId);
   }
 
   @Post('change-password/send-otp')

@@ -550,6 +550,7 @@ export class AuthService {
     firstName: string;
     lastName: string;
     phoneNumber: string | null;
+    avatarUrl?: string | null;
   }) {
     const payload: JwtPayload = {
       sub: user.id,
@@ -589,6 +590,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber,
+        avatarUrl: user.avatarUrl || null,
       },
     };
   }

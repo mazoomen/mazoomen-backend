@@ -70,6 +70,7 @@ export class RsvpService {
     // 4. Verify the invitation exists
     const invitation = await this.prisma.invitation.findUnique({
       where: { id: dto.invitationId },
+      include: { purchase: true },
     });
 
     if (!invitation) {
@@ -78,30 +79,61 @@ export class RsvpService {
       );
     }
 
-    // 5. Block duplicate RSVP submissions (same name + invitationId)
+    // 5. Check if an RSVP with the same name exists (update if present, otherwise create new)
     const existingRsvp = await this.prisma.rSVP.findFirst({
       where: {
         invitationId: dto.invitationId,
         name: nameNorm,
+        isDeleted: false,
       },
     });
 
+    let rsvp;
     if (existingRsvp) {
-      throw new BadRequestException(
-        `errors.rsvp_duplicate|An RSVP with the name "${dto.name}" has already been submitted for this invitation.`,
-      );
+      rsvp = await this.prisma.rSVP.update({
+        where: { id: existingRsvp.id },
+        data: {
+          attendance: dto.attendance,
+          guestsCount: dto.guestsCount,
+          message: dto.message,
+          isHidden: false,
+        },
+      });
+    } else {
+      rsvp = await this.prisma.rSVP.create({
+        data: {
+          invitationId: dto.invitationId,
+          name: nameNorm,
+          attendance: dto.attendance,
+          guestsCount: dto.guestsCount,
+          message: dto.message,
+        },
+      });
     }
 
-    // 6. Create the RSVP entry
-    const rsvp = await this.prisma.rSVP.create({
-      data: {
-        invitationId: dto.invitationId,
-        name: nameNorm,
-        attendance: dto.attendance,
-        guestsCount: dto.guestsCount,
-        message: dto.message,
-      },
-    });
+    // Send notification to invitation owner
+    if (invitation.purchase?.userId) {
+      try {
+        const isAttending = dto.attendance === 'YES';
+        const eventName = invitation.eventTitle || 'Invitation';
+
+        await this.prisma.notification.create({
+          data: {
+            userId: invitation.purchase.userId,
+            title: `New RSVP: ${dto.name}`,
+            titleAr: `تأكيد حضور جديد: ${dto.name}`,
+            message: `${dto.name} responded ${isAttending ? 'Attending' : 'Not Attending'}${
+              dto.guestsCount ? ` (${dto.guestsCount} guests)` : ''
+            }${dto.message ? `. Message: "${dto.message}"` : ''}`,
+            messageAr: `قام ${dto.name} بالرد (${isAttending ? 'سيحضر' : 'يعتذر عن الحضور'}) في ${eventName}${
+              dto.guestsCount ? ` (عدد الحضور: ${dto.guestsCount})` : ''
+            }${dto.message ? `. الرسالة: "${dto.message}"` : ''}`,
+          },
+        });
+      } catch (notifyErr) {
+        console.error('Failed to create RSVP notification:', notifyErr);
+      }
+    }
 
     // Invalidate the invitation slug cache so guestbook updates instantly
     await this.cacheManager.del(`invitations:slug:${invitation.slug}`);

@@ -66,4 +66,13 @@ export class UpdateProfileDto {
       'Phone number must be a valid international format (e.g. +966501234567)',
   })
   phoneNumber?: string;
+
+  @ApiProperty({
+    description: 'Profile avatar image URL',
+    example: 'https://example.com/avatar.jpg',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  avatarUrl?: string;
 }
